@@ -362,6 +362,9 @@ double Q_weight(double const &chiSq, int const &ndof)
     return gsl_cdf_chisq_Q(chiSq, ndof);
 }
 
+// Jackknife --> reduce sample number using common divisors
+
+
 // ------------------------------------------------------------------------------------------------------------
 
 // main function
@@ -457,6 +460,7 @@ int main(int, char **argv)
     double Q = Q_weight(chiSq, nDoF);
 
     // write results to screen
+    /*
     std::cout << "Fitted parameters:" << std::endl;
     std::cout << coeffVector << std::endl;
     std::cout << "Estimated (jackknife) error for fitted paramteres:" << std::endl;
@@ -465,4 +469,5 @@ int main(int, char **argv)
     std::cout << "ndof = " << nDoF << std::endl;
     std::cout << "AIC = " << aic << std::endl;
     std::cout << "Q = " << Q << std::endl;
+    */
 }

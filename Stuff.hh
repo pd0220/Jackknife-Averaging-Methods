@@ -1,4 +1,4 @@
-// chi squared method implementation for function fit to correlated data sets
+// functions and methods for jackknife analysis and function fits for correlated data sets
 
 // used headers/libraries
 #include <Eigen/Dense>
@@ -13,12 +13,13 @@
 // ------------------------------------------------------------------------------------------------------------
 
 // read given file
-// expected structure: x11 | y11 | y_err11 | y_jck11...
-//                     x21 | y21 | y_err21 | y_jck21...
-//                     x12 | y12 | y_err12 | y_jck12...
-//                     x22 | y22 | y_err22 | y_jcj22...
-//                     ... | ... |   ...   |   ...
-Eigen::MatrixXd ReadFile(std::string fileName)
+// expected structure (for this one only):
+// x11 | y11 | y_err11 | y_jck11...
+// x21 | y21 | y_err21 | y_jck21...
+// x12 | y12 | y_err12 | y_jck12...
+// x22 | y22 | y_err22 | y_jcj22...
+// ... | ... |   ...   |   ...
+Eigen::MatrixXd ReadFile(std::string const &fileName)
 {
     // start reading
     std::ifstream fileToRead;
@@ -156,8 +157,8 @@ Eigen::MatrixXd BlockCInverse(Eigen::MatrixXd const &rawDataMat, int const &numO
 
 // LHS matrix element for given fit (Fourier series)
 // ** NOW ** data: imZB --> sine only, ZBB --> cosine only
-// should be modular
-double MatElement(int k, int l, Eigen::VectorXd const &xData, std::vector<Eigen::MatrixXd> const &CInvContainer, int const &numOfQs)
+// * should be more modular *
+double MatElement(int const &k, int const &l, Eigen::VectorXd const &xData, std::vector<Eigen::MatrixXd> const &CInvContainer, int const &numOfQs)
 {
     // vectors to store base function data --> size is specifically 2
     Eigen::VectorXd baseFunc_k(numOfQs), baseFunc_l(numOfQs);
@@ -205,7 +206,7 @@ Eigen::MatrixXd MatLHS(Eigen::VectorXd const &xData, std::vector<Eigen::MatrixXd
 // ------------------------------------------------------------------------------------------------------------
 
 // base functions
-double BaseFunc(int type, int k, double x)
+double BaseFunc(int const &type, int const &k, double const &x)
 {
     // determine type
     if (type == 0)
@@ -277,7 +278,7 @@ Eigen::VectorXd VecRHS(Eigen::VectorXd const &yData, Eigen::VectorXd const &xDat
 // ------------------------------------------------------------------------------------------------------------
 
 // error estimation via jackknife method
-Eigen::VectorXd JCKErrorEstimation(Eigen::VectorXd coeffs, std::vector<Eigen::VectorXd> JCKCoeffs)
+Eigen::VectorXd JCKErrorEstimation(Eigen::VectorXd const &coeffs, std::vector<Eigen::VectorXd> const &JCKCoeffs)
 {
     int length = coeffs.size();
     int N = static_cast<int>(JCKCoeffs.size());
@@ -364,4 +365,64 @@ double Q_weight(double const &chiSq, int const &ndof)
 
 // ------------------------------------------------------------------------------------------------------------
 
-// Jackknife --> reduce sample number using common divisors
+// reduce jackknife sample number using common divisors
+Eigen::VectorXd JCKReduced(Eigen::VectorXd const &JCKSamples, int const &divisor)
+{
+    // number of jackknife samples
+    int const lengthOriginal = JCKSamples.size();
+    // test if divisor is right
+    if ((lengthOriginal % divisor) != 0.)
+    {
+        std::cout << "Divisor ERROR in Jackknife sample reduction." << std::endl;
+        std::exit(-1);
+    }
+
+    // empty vector for block values
+    Eigen::VectorXd blockVals(lengthOriginal);
+    // sum of (original) samples
+    double const sum = JCKSamples.sum();
+    // calculate block values and add to vector
+    for (int i = 0; i < lengthOriginal; i++)
+    {
+        blockVals[i] = sum - (lengthOriginal - 1) * JCKSamples[i];
+    }
+
+    // create new samples
+    // number of new samples
+    int const reduced = lengthOriginal / divisor;
+    // vector for new samples (reduced)
+    Eigen::VectorXd newSamples(divisor);
+    // calculate new samples
+    for (int i = 0; i < divisor; i++)
+    {
+        newSamples[i] = 0;
+        for (int j = 0; j < reduced; j++)
+        {
+            newSamples[i] += blockVals[i * reduced + j];
+        }
+    }
+
+    // reduced samples
+    return newSamples;
+}
+
+// ------------------------------------------------------------------------------------------------------------
+
+// calculate variance FOR jackknife method
+double variance(Eigen::VectorXd const &subsetMeans, int const &N, double const &estimator)
+{
+    // calculate pre-factor
+    double preFactor = (double)(N - 1) / N;
+    // calculate sum
+    double var = 0.;
+    for (int i = 0; i < N; i++)
+    {
+        double val = subsetMeans[i] - estimator;
+        var += val * val;
+    }
+
+    return preFactor * var;
+}
+
+// ------------------------------------------------------------------------------------------------------------
+

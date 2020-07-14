@@ -7,6 +7,7 @@
 //      2nd col --> data (y)
 //      3rd col --> err (sigma)
 // rest of cols --> Jackknife samples (y_jck)
+// argv[2] is the divisor
 int main(int, char **argv)
 {
     // file name
@@ -21,33 +22,31 @@ int main(int, char **argv)
         std::exit(-1);
     }
 
+    // divisor
+    int divisor = std::atoi(argv[2]);
+
     // read file to matrix
     Eigen::MatrixXd const rawDataMat = ReadFile(fileName);
 
     // size of raw data
     int rows = rawDataMat.rows(), cols = rawDataMat.cols();
 
-    // x values
-    Eigen::VectorXd xData(rows);
+    // jackknife samples (for each measurement)
+    std::vector<Eigen::VectorXd> JCKSamples(rows, Eigen::VectorXd(cols - 3));
     for (int i = 0; i < rows; i++)
     {
-        xData(i) = rawDataMat(i, 0);
-    }
-
-    // y values
-    Eigen::VectorXd yData(rows);
-    for (int i = 0; i < rows; i++)
-    {
-        yData(i) = rawDataMat(i, 1);
-    }
-
-    // jackknife samples
-    std::vector<Eigen::VectorXd> JCKSamples(cols - 3, Eigen::VectorXd(rows));
-    for (int i = 0; i < rows; i++)
-    {
-        for (int j = 0; j < (cols - 3); j++)
+        for (int j = 0; j < cols - 3; j++)
         {
-            JCKSamples[j](i) = rawDataMat(i, j + 3);
+            JCKSamples[i][j] = rawDataMat(i, j + 3);
         }
     }
+
+    // test for 1st data set
+    Eigen::VectorXd JCKReducedSamples = JCKReduced(JCKSamples[0], divisor);
+
+
+    // write to screen
+    std::cout << JCKReducedSamples << std::endl;
+    std::cout << "Mean: " << JCKReducedSamples.mean() << std::endl;
+    std::cout << "Sigma: " << std::sqrt(variance(JCKReducedSamples, divisor, JCKReducedSamples.mean())) << std::endl;;
 }

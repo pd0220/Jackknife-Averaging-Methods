@@ -1,4 +1,4 @@
-// include usable functions
+// include used functions
 #include "Stuff.hh"
 
 // main function
@@ -14,7 +14,7 @@ int main(int, char **argv)
     std::string fileName = "None";
     // check for arguments
     fileName = argv[1];
-    
+
     // error check
     if (fileName == "None")
     {
@@ -44,9 +44,6 @@ int main(int, char **argv)
     // test for 1st data set
     Eigen::VectorXd JCKReducedSamples = JCKReduced(JCKSamples[0], divisor);
 
-
     // write to screen
     std::cout << JCKReducedSamples << std::endl;
-    std::cout << "Mean: " << JCKReducedSamples.mean() << std::endl;
-    std::cout << "Sigma: " << std::sqrt(variance(JCKReducedSamples, divisor, JCKReducedSamples.mean())) << std::endl;;
 }

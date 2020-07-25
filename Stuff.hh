@@ -407,6 +407,8 @@ Eigen::VectorXd JCKReducedBlocks(Eigen::VectorXd const &JCKSamples, int const &d
     return newBlocks;
 }
 
+// ------------------------------------------------------------------------------------------------------------
+
 // calculate new jackknife samples (after reducing number of blocks)
 Eigen::VectorXd JCKSamplesCalculation(Eigen::VectorXd const &Blocks)
 {
@@ -437,7 +439,7 @@ Eigen::VectorXd JCKSamplesCalculation(Eigen::VectorXd const &Blocks)
 // ------------------------------------------------------------------------------------------------------------
 
 // calculate variance for jackknife method
-double variance(Eigen::VectorXd const &JCKSamples)
+double JCKVariance(Eigen::VectorXd const &JCKSamples)
 {
     // size
     int N = JCKSamples.size();
@@ -456,5 +458,3 @@ double variance(Eigen::VectorXd const &JCKSamples)
     // return variance
     return preFactor * var;
 }
-
-// ------------------------------------------------------------------------------------------------------------

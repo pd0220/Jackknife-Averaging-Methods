@@ -55,5 +55,5 @@ int main(int, char **argv)
               << ReducedSamples << std::endl;
 
     // variance (via jackknife method)
-    std::cout << std::sqrt(variance(ReducedSamples)) << std::endl;
+    std::cout << std::sqrt(JCKVariance(ReducedSamples)) << std::endl;
 }

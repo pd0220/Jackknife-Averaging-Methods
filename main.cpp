@@ -1,4 +1,4 @@
-// include used functions
+// include usable functions
 #include "Stuff.hh"
 
 // main function
@@ -41,9 +41,19 @@ int main(int, char **argv)
         }
     }
 
-    // test for 1st data set
-    Eigen::VectorXd JCKReducedSamples = JCKReduced(JCKSamples[0], divisor);
+    // test for 1st data set (blocks)
+    Eigen::VectorXd ReducedBlocks = JCKReducedBlocks(JCKSamples[0], divisor);
 
-    // write to screen
-    std::cout << JCKReducedSamples << std::endl;
+    // write to screen (blocks)
+    //std::cout << ReducedBlocks << std::endl;
+
+    // test (samples)
+    Eigen::VectorXd ReducedSamples = JCKSamplesCalculation(ReducedBlocks);
+
+    // write to screen (samples)
+    std::cout << "Reduced samples:\n"
+              << ReducedSamples << std::endl;
+
+    // variance (via jackknife method)
+    std::cout << std::sqrt(variance(ReducedSamples)) << std::endl;
 }

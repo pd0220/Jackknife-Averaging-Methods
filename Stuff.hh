@@ -365,8 +365,8 @@ double Q_weight(double const &chiSq, int const &ndof)
 
 // ------------------------------------------------------------------------------------------------------------
 
-// reduce jackknife sample number using common divisors
-Eigen::VectorXd JCKReduced(Eigen::VectorXd const &JCKSamples, int const &divisor)
+// calculate original block means (and reducing their number by averaging) from jackknife samples
+Eigen::VectorXd JCKReducedBlocks(Eigen::VectorXd const &JCKSamples, int const &divisor)
 {
     // number of jackknife samples
     int const lengthOriginal = JCKSamples.size();
@@ -387,42 +387,74 @@ Eigen::VectorXd JCKReduced(Eigen::VectorXd const &JCKSamples, int const &divisor
         blockVals[i] = sum - (lengthOriginal - 1) * JCKSamples[i];
     }
 
-    // create new samples
-    // number of new samples
+    // create new blocks
+    // number of new blocks
     int const reduced = lengthOriginal / divisor;
-    // vector for new samples (reduced)
-    Eigen::VectorXd newSamples(divisor);
-    // calculate new samples
+    // vector for new blocks (reduced)
+    Eigen::VectorXd newBlocks(divisor);
+    // calculate new blocks
     for (int i = 0; i < divisor; i++)
     {
-        newSamples[i] = 0;
+        newBlocks[i] = 0;
         for (int j = 0; j < reduced; j++)
         {
-            newSamples[i] += blockVals[i * reduced + j];
+            newBlocks[i] += blockVals[i * reduced + j];
         }
+        newBlocks[i] /= reduced;
     }
 
     // reduced samples
-    return newSamples;
+    return newBlocks;
+}
+
+// calculate new jackknife samples (after reducing number of blocks)
+Eigen::VectorXd JCKSamplesCalculation(Eigen::VectorXd const &Blocks)
+{
+    // number of new blocks
+    int const lengthBlocks = Blocks.size();
+
+    // vector for jackknife samples
+    Eigen::VectorXd Samples(lengthBlocks);
+
+    // copy data to std::vector
+    std::vector<double> tempVec(Blocks.data(), Blocks.data() + lengthBlocks);
+
+    // create jackknife samples
+    for (int i = 0; i < lengthBlocks; i++)
+    {
+        // copy data
+        std::vector<double> tempJCKVec = tempVec;
+        // delete ith element
+        tempJCKVec.erase(tempJCKVec.begin() + i);
+        // calculate mean
+        Samples[i] = std::accumulate(tempJCKVec.begin(), tempJCKVec.end(), 0.) / (lengthBlocks - 1);
+    }
+
+    // return new jackknife samples
+    return Samples;
 }
 
 // ------------------------------------------------------------------------------------------------------------
 
-// calculate variance FOR jackknife method
-double variance(Eigen::VectorXd const &subsetMeans, int const &N, double const &estimator)
+// calculate variance for jackknife method
+double variance(Eigen::VectorXd const &JCKSamples)
 {
+    // size
+    int N = JCKSamples.size();
+    // mean / estimator
+    double estimator = JCKSamples.mean();
     // calculate pre-factor
     double preFactor = (double)(N - 1) / N;
     // calculate sum
     double var = 0.;
     for (int i = 0; i < N; i++)
     {
-        double val = subsetMeans[i] - estimator;
+        double val = JCKSamples[i] - estimator;
         var += val * val;
     }
 
+    // return variance
     return preFactor * var;
 }
 
 // ------------------------------------------------------------------------------------------------------------
-

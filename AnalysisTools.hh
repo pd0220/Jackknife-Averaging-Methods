@@ -13,12 +13,6 @@
 // ------------------------------------------------------------------------------------------------------------
 
 // read given file
-// expected structure (for this one only):
-// x11 | y11 | y_err11 | y_jck11...
-// x21 | y21 | y_err21 | y_jck21...
-// x12 | y12 | y_err12 | y_jck12...
-// x22 | y22 | y_err22 | y_jcj22...
-// ... | ... |   ...   |   ...
 Eigen::MatrixXd ReadFile(std::string const &fileName)
 {
     // start reading
@@ -82,7 +76,11 @@ Eigen::MatrixXd ReadFile(std::string const &fileName)
     return DataMat;
 }
 
-// ------------------------------------------------------------------------------------------------------------
+//
+//
+// CORRELATED FITS VIA GENERALIZED CHI SQUARED METHOD
+//
+//
 
 // calculate correlation coefficients of two datasets with given means (faster this way)
 double CorrCoeff(Eigen::VectorXd const &one, Eigen::VectorXd const &two, double meanOne, double meanTwo)
@@ -103,7 +101,7 @@ double CorrCoeff(Eigen::VectorXd const &one, Eigen::VectorXd const &two, double 
 
 // ------------------------------------------------------------------------------------------------------------
 
-// block from the blockdiagonal covariance matrix
+// block from the blockdiagonal inverse of covariance matrix
 Eigen::MatrixXd BlockCInverse(Eigen::MatrixXd const &rawDataMat, int const &numOfQs, int const &Q)
 {
     // jackknife samples to calculate/estimate correlations
@@ -158,7 +156,7 @@ Eigen::MatrixXd BlockCInverse(Eigen::MatrixXd const &rawDataMat, int const &numO
 // LHS matrix element for given fit (Fourier series)
 // ** NOW ** data: imZB --> sine only, ZBB --> cosine only
 // * should be more modular *
-double MatElement(int const &k, int const &l, Eigen::VectorXd const &xData, std::vector<Eigen::MatrixXd> const &CInvContainer, int const &numOfQs)
+double LHSMatElement(int const &k, int const &l, Eigen::VectorXd const &xData, std::vector<Eigen::MatrixXd> const &CInvContainer, int const &numOfQs)
 {
     // vectors to store base function data --> size is specifically 2
     Eigen::VectorXd baseFunc_k(numOfQs), baseFunc_l(numOfQs);
@@ -185,7 +183,7 @@ double MatElement(int const &k, int const &l, Eigen::VectorXd const &xData, std:
 // ------------------------------------------------------------------------------------------------------------
 
 // left hand side matrix for linear equation system
-Eigen::MatrixXd MatLHS(Eigen::VectorXd const &xData, std::vector<Eigen::MatrixXd> const &CInvContiner, int const &nParams, int const &numOfQs)
+Eigen::MatrixXd LHSMat(Eigen::VectorXd const &xData, std::vector<Eigen::MatrixXd> const &CInvContiner, int const &nParams, int const &numOfQs)
 {
     // empty (square) matrix with given size
     Eigen::MatrixXd LHS(nParams, nParams);
@@ -195,7 +193,7 @@ Eigen::MatrixXd MatLHS(Eigen::VectorXd const &xData, std::vector<Eigen::MatrixXd
     {
         for (int l = 1; l < nParams; l++)
         {
-            LHS(k, l) = MatElement(k, l, xData, CInvContiner, numOfQs);
+            LHS(k, l) = LHSMatElement(k, l, xData, CInvContiner, numOfQs);
         }
     }
 
@@ -227,7 +225,7 @@ double BaseFunc(int const &type, int const &k, double const &x)
 // ------------------------------------------------------------------------------------------------------------
 
 // RHS vector element for given fit (Fourier series)
-double VecElement(int k, Eigen::VectorXd const &yData, Eigen::VectorXd const &xData, std::vector<Eigen::MatrixXd> const &CInvContainer, int const &numOfQs)
+double RHSVecElement(int k, Eigen::VectorXd const &yData, Eigen::VectorXd const &xData, std::vector<Eigen::MatrixXd> const &CInvContainer, int const &numOfQs)
 {
     // vectors to store base function data --> size is specifically 2
     Eigen::VectorXd baseFunc_k(numOfQs);
@@ -260,7 +258,7 @@ double VecElement(int k, Eigen::VectorXd const &yData, Eigen::VectorXd const &xD
 // ------------------------------------------------------------------------------------------------------------
 
 // right hand side vector for linear equation system
-Eigen::VectorXd VecRHS(Eigen::VectorXd const &yData, Eigen::VectorXd const &xData, std::vector<Eigen::MatrixXd> const &CInvContainer, int const &nParams, int const &numOfQs)
+Eigen::VectorXd RHSVec(Eigen::VectorXd const &yData, Eigen::VectorXd const &xData, std::vector<Eigen::MatrixXd> const &CInvContainer, int const &nParams, int const &numOfQs)
 {
     // empty vector with given size
     Eigen::VectorXd RHS(nParams);
@@ -268,7 +266,7 @@ Eigen::VectorXd VecRHS(Eigen::VectorXd const &yData, Eigen::VectorXd const &xDat
     // fill vector
     for (int k = 0; k < nParams; k++)
     {
-        RHS(k) = VecElement(k, yData, xData, CInvContainer, numOfQs);
+        RHS(k) = RHSVecElement(k, yData, xData, CInvContainer, numOfQs);
     }
 
     // return RHS vector
@@ -300,7 +298,12 @@ Eigen::VectorXd JCKErrorEstimation(Eigen::VectorXd const &coeffs, std::vector<Ei
     return sigmaSqVec;
 }
 
-// ------------------------------------------------------------------------------------------------------------
+//
+//
+// FIT QUALITY TESTS AND METHODS
+//
+//
+
 
 // chiSquared value (fit quality)
 double ChiSq(Eigen::VectorXd const &yData, Eigen::VectorXd const &xData, std::vector<Eigen::MatrixXd> const &CInvContainer, int const &numOfQs, Eigen::VectorXd coeffVector)
@@ -363,7 +366,11 @@ double Q_weight(double const &chiSq, int const &ndof)
     return gsl_cdf_chisq_Q(chiSq, ndof);
 }
 
-// ------------------------------------------------------------------------------------------------------------
+//
+//
+// BLOCK AND JACKKNIFE SAMPLE NUMBER REDUCTION VIA AVERAGING
+//
+//
 
 // calculate original block means (and reducing their number by averaging) from jackknife samples
 Eigen::VectorXd JCKReducedBlocks(Eigen::VectorXd const &JCKSamples, int const &divisor)

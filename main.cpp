@@ -1,5 +1,5 @@
 // include usable functions
-#include "Stuff.hh"
+#include "AnalysisTools.hh"
 
 // main function
 // argv[1] is datafile to fit
